@@ -1,0 +1,25 @@
+CREATE VIEW vuelos_disponibles AS 
+   SELECT datos_salida.*,datos_aeropuertos.*,datos_precio_asientos.*
+   FROM (SELECT salidas.vuelo as Numerodevuelo, salidas.modelo_avion as ModelodeAvion, salidas.hora_sale as Salida, salidas.hora_llega as Llegada,
+				instancias_vuelo.fecha as Fecha, instancias_vuelo.dia as Dia,
+				CASE 
+					WHEN salidas.hora_sale<salidas.hora_llega THEN TIMEDIFF(salidas.hora_llega,salidas.hora_sale)
+					WHEN salidas.hora_sale >= salidas.hora_llega THEN ADDTIME(TIMEDIFF(salidas.hora_sale,salidas.hora_llega),'24:00:00')
+				END AS tiempo_vuelo 
+			FROM salidas, instancias_vuelo
+				WHERE salidas.vuelo=instancias_vuelo.vuelo
+		) datos_salida,			#PUNTO 1 DE LA VISTA
+		
+		(SELECT A1.codigo AS CODIGOUNO, A1.nombre AS NOMBREUNO, A1.pais AS PAISUNO, A1.estado AS ESTADOUNO, A1.ciudad AS CIUDADUNO,
+				A2.codigo AS CODIGODOS, A2.nombre AS NOMBREDOS, A2.pais AS PAISDOS, A2.estado AS ESTADODOS, A2.ciudad AS CIUDADDOS, VP.numero AS NUMEROVUELOP
+			FROM vuelos_programados VP, aeropuertos A1, aeropuertos A2
+			WHERE VP.aeropuerto_salida=A1.codigo AND VP.aeropuerto_llegada=A2.codigo
+		) datos_aeropuertos,    #PUNTO 2 DE LA VISTA
+		
+		(SELECT vuelo, precio, cant_asientos
+			FROM brinda, clases
+		) datos_precio_asientos  #PUNTO 3 DE LA VISTA
+		
+		WHERE 	datos_salida.numerodevuelo=datos_aeropuertos.NUMEROVUELOP AND 
+				datos_aeropuertos.NUMEROVUELOP=datos_precio_asientos.vuelo AND
+				datos_salida.numerodevuelo=datos_precio_asientos.vuelo;
